@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 
 // outputs an updated array
-public RWStructuredBuffer<float3> output;
+RWStructuredBuffer<float3> output;
 
 [numthreads(64, 1 ,1)] // 1 dimension: easier to work with. 64 works on most platforms.
 void CSMain (uint3 id : SV_DispatchThreadID) //SV_DISPATCHThreadID uses numThreads
