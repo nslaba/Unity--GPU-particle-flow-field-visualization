@@ -1,0 +1,49 @@
+// This shader handles the particles. It reads the vector field data and updates the positions 
+// movements of the particles based on the vector field data
+#pragma kernel UpdateParticles
+
+struct Particle {
+    float3 position;
+    float3 velocity;
+    float4 color;
+    float3 force;
+    float size;
+    float lifetime;
+}
+
+RWStructuredBuffer<Particle> particles;
+
+Texture3D perlinField;
+float3 perlinFieldSize;
+float3 inversePerlinFieldSize;
+
+float deltaTime;
+
+[numthreads(64, 1, 1)]
+void UpdateParticles(uint3 id: SV_DispatchThreadID) {
+    Particle p = particles[id.x];
+    float3 pos = p.position;
+    float3 vel = p.velocity;
+    float4 color = p.color;
+    float4 force = p.force;
+    float size = p.size;
+    float lifetime = p.lifetime;
+
+    // Sample the vector field at the current particle position
+    float3 samplePos = pos * inversePerlinFieldSize;
+    float3 sample = tex3D(perlinField, samplePos).rgb;
+
+    // Update particle velocity based on vector field and time
+    vel += sample * deltaTime;
+
+    // Update particle position based on vel and time
+    pos += vel * deltaTime;
+
+    // for now keep color, force, size and lifetime the same
+    
+
+    // Write back updated particle data
+    p.position = pos;
+    p.velocity = vel;
+    particles[id.x] = p;
+}
