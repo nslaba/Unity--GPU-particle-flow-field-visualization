@@ -9,41 +9,50 @@ struct Particle {
     float3 force;
     float size;
     float lifetime;
-}
+};
 
 RWStructuredBuffer<Particle> particles;
 
-Texture3D perlinField;
-float3 perlinFieldSize;
-float3 inversePerlinFieldSize;
+// Use Perlin field in the future to set Particle's positions
 
+
+// Variables from the CPU
 float deltaTime;
+float2 mousePosition;
 
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void UpdateParticles(uint3 id: SV_DispatchThreadID) {
+
     Particle p = particles[id.x];
     float3 pos = p.position;
     float3 vel = p.velocity;
     float4 color = p.color;
-    float4 force = p.force;
+    float3 force = p.force;
     float size = p.size;
-    float lifetime = p.lifetime;
+    float lifetime = p.lifetime - deltaTime;
 
-    // Sample the vector field at the current particle position
-    float3 samplePos = pos * inversePerlinFieldSize;
-    float3 sample = tex3D(perlinField, samplePos).rgb;
+    // Deal with mouse
+    float3 delta = float3(mousePosition.xy, 3) - particles[id.x].position;
+    float3 direction = normalize(delta);
 
+    // Sample the vector field at the current particle position -> LATER
+    
     // Update particle velocity based on vector field and time
-    vel += sample * deltaTime;
+    vel += direction;
 
     // Update particle position based on vel and time
     pos += vel * deltaTime;
 
     // for now keep color, force, size and lifetime the same
-    
+    if (lifetime < 0.0)
+    {
+        // destroy the particle somehow or do something
+    }
 
     // Write back updated particle data
     p.position = pos;
     p.velocity = vel;
+    p.lifetime = lifetime;
+    
     particles[id.x] = p;
 }
