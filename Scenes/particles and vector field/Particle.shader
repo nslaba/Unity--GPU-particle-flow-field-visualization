@@ -3,7 +3,7 @@ Shader "Custom/Particle" {
 	SubShader {
 		Pass {
 		Tags{ "RenderType" = "Opaque" }
-		LOD 200
+		LOD 200 // Level of Detail
 		Blend SrcAlpha one
 
 		CGPROGRAM
@@ -13,7 +13,7 @@ Shader "Custom/Particle" {
 
 		#include "UnityCG.cginc"
 
-		// Use shader model 3.0 target, to get nicer looking lighting
+		// Use shader model 5.0 target, to get nicer looking lighting
 		#pragma target 5.0
 
 		struct Particle{

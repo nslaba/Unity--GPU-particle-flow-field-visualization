@@ -47,6 +47,7 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     if (lifetime < 0.0)
     {
         // destroy the particle somehow or do something
+        // p.color.w = 0;
     }
 
     // Write back updated particle data
