@@ -11,6 +11,9 @@ struct Particle {
     float lifetime;
 };
 
+// Initialize the vector field that will share data with the CircularField compute shader :)
+RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
+uniform float2 _VectorFieldSize;
 RWStructuredBuffer<Particle> particles;
 
 // Use Perlin field in the future to set Particle's positions

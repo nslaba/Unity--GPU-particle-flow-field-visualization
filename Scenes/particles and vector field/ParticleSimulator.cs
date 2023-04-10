@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 // This script handles particle simulation
 
@@ -38,6 +39,7 @@ public class ParticleSimulator : MonoBehaviour
     
     public float deltaTime;
     public float time;
+    Vector2 dimensions;
 
     // Particle struct
     struct Particle {
@@ -56,6 +58,12 @@ public class ParticleSimulator : MonoBehaviour
     // Material used to draw particles on screen
     public Material material;
 
+    /* STEP 3 : Initialize nescessary variables for a fence to prevent multithreading issues */
+    // 3) a. Create a fence using a command buffer
+    CommandBuffer fenceCommandBuffer;
+    int fence;
+    int[] results;
+
 
      /* FUNCTION : InitializeVectorField *******************
      *
@@ -69,11 +77,11 @@ public class ParticleSimulator : MonoBehaviour
         Debug.Log("At the start of InitVectorField");
         /* STEP 1 :  calc and update the nescessary vars */
         // 1) a. define dimensions
-        Vector2 dimensions = new Vector2(fieldWidth, fieldHeight);
+        dimensions = new Vector2(fieldWidth, fieldHeight);
         Debug.Log("in InitVectorField : after defining dimensions (1a)");
 
          // 1) b. define threadGroups
-        threadGroupsX = Mathf.CeilToInt(fieldWidth/32f);
+        threadGroupsX = Mathf.CeilToInt(fieldWidth/64f);
         threadGroupsY = Mathf.CeilToInt(fieldHeight/8f);
         Debug.Log("in InitVectorField : after defining thread groups (1b)");
 
@@ -125,42 +133,6 @@ public class ParticleSimulator : MonoBehaviour
 
         /* STEP 2 :  Set initial vals for each Particle in cpu particleArray*/
         Particle[] particleArray = new Particle[numParticles];
-        // for (int i=0; i <numParticles; i++)
-        // {
-        //     // What I actually want is to initialize the position of 1 particle per pixel
-        //     float x = Random.value * 2 - 1.0f;
-        //     float y = Random.value * 2 - 1.0f;
-        //     float z = Random.value * 2 - 1.0f;
-        //     Vector3 xyz = new Vector3(x, y, z);
-        //     xyz.Normalize();
-        //     xyz *= Random.value;
-        //     xyz *= 0.5f;
-
-        //     particleArray[i].position.x = xyz.x;
-        //     particleArray[i].position.y = xyz.y;
-        //     particleArray[i].position.z = xyz.z + 3;
-
-        //     particleArray[i].velocity.x = 0;
-        //     particleArray[i].velocity.y = 0;
-        //     particleArray[i].velocity.z = 0;
-
-        //     particleArray[i].lifetime = Random.value * 5.0f + 1.0f;
-
-        //     particleArray[i].color.x = 1;
-        //     particleArray[i].color.y = 0;
-        //     particleArray[i].color.z = 0;
-        //     particleArray[i].color.w = 1; 
-
-        //     particleArray[i].force.x = 0;
-        //     particleArray[i].force.y = 0;
-        //     particleArray[i].force.z = 0;
-            
-
-        //     particleArray[i].size = 0.8f;
-
-            
-        // }
-
         for (int i=0; i <numParticles; i++)
         {
             // What I actually want is to initialize the position of 1 particle per pixel
@@ -204,6 +176,10 @@ public class ParticleSimulator : MonoBehaviour
 
         // 3) c. Compute buffer to material
         material.SetBuffer("particleBuffer", particleBuffer);
+
+        // 3) d. Set the data shared between the two shaders
+        particleShader.SetTexture(kernelID, "_VectorField", circularFieldTexture);
+        particleShader.SetVector("_VectorFieldSize", dimensions);
     }
 
 
@@ -219,6 +195,12 @@ public class ParticleSimulator : MonoBehaviour
         if (circularField != null) Debug.Log("Vector field is not null");
         /* STEP 2 : Initialize Particles*/
         InitParticles();
+
+        /* STEP 3 : Initialize fence variables*/
+        fenceCommandBuffer = new CommandBuffer();
+        fence = fenceCommandBuffer.IssuePluginEvent(GetFencePluginEventID());
+        Graphics.ExecuteCommandBuffer(fenceCommandBuffer);
+        fenceCommandBuffer.Release();
 
     }
 
@@ -244,9 +226,12 @@ public class ParticleSimulator : MonoBehaviour
         // 3) b. regarding the vector field
         circularField.SetFloat("_Time", time);
 
-        // Dispatch the vector field
+        // Dispatch the vector field before the particles since particles depend on the vector field
         circularField.Dispatch(kernelID, threadGroupsX, threadGroupsY, 1);
         
+        // Deal with FENCE
+        
+
         // Dispatch the particle shader
         particleShader.Dispatch(kernelID, mWarpCount, 1, 1);
     }
