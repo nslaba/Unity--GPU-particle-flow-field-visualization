@@ -7,7 +7,7 @@ RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
 uniform float2 _VectorFieldSize;
 uniform float _Time;
 // Declare rotation speed of vector field
-float _RotationSpeed;
+uniform float _RotationSpeed;
 
 // number of threads should be related to the size of the texture I want to generate
 // Since I want the field to cover the whole screen which is 1920 x 1080, 
@@ -15,9 +15,11 @@ float _RotationSpeed;
 [numthreads(32,8,1)]
 void GenerateCircularField (uint3 id : SV_DispatchThreadID)
 {
+    
     float2 position = (float2)id.xy / uint2(_VectorFieldSize.xy);
     // subtracting 0.5 and multiplying by 10 is to control the magnitude of the vectors
     float angle = length(position - 0.5) * 10.0 + _Time * _RotationSpeed;
     float2 direction = float2(cos(angle), sin(angle));
-    _VectorField[id.xy] = float4(direction, 0.0, 0.0);
+    _VectorField[id.xy] = float4(direction, 0.0, 0.0); // Since its RGBA :)
+    
 }

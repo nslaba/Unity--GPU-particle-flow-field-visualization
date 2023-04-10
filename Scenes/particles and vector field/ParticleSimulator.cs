@@ -8,6 +8,7 @@ public class ParticleSimulator : MonoBehaviour
 {
     /* STEP 1 : Vector Field Related Declarations*/
     public ComputeShader circularField;
+    public RenderTexture circularFieldTexture;
     public float rotationSpeed = 5.0f;
 
 
@@ -50,7 +51,7 @@ public class ParticleSimulator : MonoBehaviour
     
     private const int SIZE_PARTICLE = 60;
     // change # of particles to be 2073600 = 1920 x 1080. This way I can initialize the particles' positions per pixel
-    private int numParticles = 1000000;
+    private int numParticles = 2073600;
 
     // Material used to draw particles on screen
     public Material material;
@@ -76,7 +77,6 @@ public class ParticleSimulator : MonoBehaviour
         threadGroupsY = Mathf.CeilToInt(fieldHeight/8f);
         Debug.Log("in InitVectorField : after defining thread groups (1b)");
 
-        
 
         // 1) b. get the kernel ID
         fieldKernelID = circularField.FindKernel("GenerateCircularField");
@@ -86,7 +86,7 @@ public class ParticleSimulator : MonoBehaviour
 
         /* STEP 2 :  Create texture and other vars */
         // Create a texture
-        RenderTexture circularFieldTexture = new RenderTexture(fieldWidth, fieldHeight, 0);
+        circularFieldTexture = new RenderTexture(fieldWidth, fieldHeight, 0);
         circularFieldTexture.enableRandomWrite = true;
         circularFieldTexture.Create();
 
@@ -96,7 +96,7 @@ public class ParticleSimulator : MonoBehaviour
         // Set the texture as a parameter in the compute shader
         circularField.SetTexture(fieldKernelID, "_VectorField", circularFieldTexture);
         circularField.SetVector("_VectorFieldSize", dimensions);
-        // circularField.SetFloat("_Time", Time.deltaTime);
+        circularField.SetFloat("_Time", Time.time);
         circularField.SetFloat("_RotationSpeed", rotationSpeed);
 
         Debug.Log("in InitVectorField : after step 3");
@@ -125,20 +125,54 @@ public class ParticleSimulator : MonoBehaviour
 
         /* STEP 2 :  Set initial vals for each Particle in cpu particleArray*/
         Particle[] particleArray = new Particle[numParticles];
+        // for (int i=0; i <numParticles; i++)
+        // {
+        //     // What I actually want is to initialize the position of 1 particle per pixel
+        //     float x = Random.value * 2 - 1.0f;
+        //     float y = Random.value * 2 - 1.0f;
+        //     float z = Random.value * 2 - 1.0f;
+        //     Vector3 xyz = new Vector3(x, y, z);
+        //     xyz.Normalize();
+        //     xyz *= Random.value;
+        //     xyz *= 0.5f;
+
+        //     particleArray[i].position.x = xyz.x;
+        //     particleArray[i].position.y = xyz.y;
+        //     particleArray[i].position.z = xyz.z + 3;
+
+        //     particleArray[i].velocity.x = 0;
+        //     particleArray[i].velocity.y = 0;
+        //     particleArray[i].velocity.z = 0;
+
+        //     particleArray[i].lifetime = Random.value * 5.0f + 1.0f;
+
+        //     particleArray[i].color.x = 1;
+        //     particleArray[i].color.y = 0;
+        //     particleArray[i].color.z = 0;
+        //     particleArray[i].color.w = 1; 
+
+        //     particleArray[i].force.x = 0;
+        //     particleArray[i].force.y = 0;
+        //     particleArray[i].force.z = 0;
+            
+
+        //     particleArray[i].size = 0.8f;
+
+            
+        // }
+
         for (int i=0; i <numParticles; i++)
         {
             // What I actually want is to initialize the position of 1 particle per pixel
-            float x = Random.value * 2 - 1.0f;
-            float y = Random.value * 2 - 1.0f;
-            float z = Random.value * 2 - 1.0f;
-            Vector3 xyz = new Vector3(x, y, z);
-            xyz.Normalize();
-            xyz *= Random.value;
-            xyz *= 0.5f;
+           
+            float row = Mathf.Floor(i/1920f); // 1920 is screen width
+            float column = i - row * 1920f;
+            row -= (1080f/2f);
+            column -= (1920f/2f);
 
-            particleArray[i].position.x = xyz.x;
-            particleArray[i].position.y = xyz.y;
-            particleArray[i].position.z = xyz.z + 3;
+            particleArray[i].position.x = column / 100f;
+            particleArray[i].position.y = row / 100f; // 1080 is the screen height
+            particleArray[i].position.z = 1;
 
             particleArray[i].velocity.x = 0;
             particleArray[i].velocity.y = 0;
@@ -175,6 +209,8 @@ public class ParticleSimulator : MonoBehaviour
 
     void Start()
     {
+        time = Time.time;
+        deltaTime = Time.deltaTime;
         Debug.Log("Start function called");
         /* STEP 1 : Initialize Vector Field */
         InitVectorField();

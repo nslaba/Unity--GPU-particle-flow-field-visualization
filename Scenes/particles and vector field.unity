@@ -512,10 +512,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 058a13214f440214785a6904b652d113, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  circularField: {fileID: 0}
+  circularField: {fileID: 7200000, guid: 3528f6cef916184459f4a1a09639ef8b, type: 3}
+  circularFieldTexture: {fileID: 0}
   rotationSpeed: 5
   particleShader: {fileID: 7200000, guid: cd74a6e94a92b6740ad9d3272e025c71, type: 3}
   deltaTime: 0
+  time: 0
   material: {fileID: 2100000, guid: 616fd6b557aced74f88eba7bc34b86a8, type: 2}
 --- !u!1 &1325606635
 GameObject:
