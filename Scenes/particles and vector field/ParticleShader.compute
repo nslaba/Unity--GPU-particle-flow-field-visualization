@@ -11,6 +11,8 @@ struct Particle {
     float lifetime;
 };
 
+
+
 // Initialize the vector field that will share data with the CircularField compute shader :)
 RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
 uniform float2 _VectorFieldSize;
@@ -23,6 +25,7 @@ RWStructuredBuffer<Particle> particles;
 float deltaTime;
 float2 mousePosition;
 
+//[numthreads(64, 8, 1)]
 [numthreads(256, 1, 1)]
 void UpdateParticles(uint3 id: SV_DispatchThreadID) {
 
@@ -41,7 +44,11 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     // Sample the vector field at the current particle position -> LATER
     
     // Update particle velocity based on vector field and time
-    vel += direction;
+    uint2 texCoord = uint2(pos.x / _VectorFieldSize.x, pos.y / _VectorFieldSize.y);
+    float4 texel = _VectorField.Load(int3(texCoord, 0));
+    //vel += _VectorField.SampleLevel(_LinearSampler, texCoord, 0).xyz * direction;
+    //uint2 texCoord = uint2(id.x / 256, id.x % 256);
+    vel += _VectorField[texel.xy] * direction;
 
     // Update particle position based on vel and time
     pos += vel * deltaTime;

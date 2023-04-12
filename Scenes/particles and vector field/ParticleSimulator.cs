@@ -1,7 +1,10 @@
+using System;
+using System.Runtime.InteropServices;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 
 // This script handles particle simulation
 
@@ -34,6 +37,12 @@ public class ParticleSimulator : MonoBehaviour
     // num of wraps needed
     private int mWarpCount;
 
+    // Trying [64, 8, 1]
+    //private const int WARP_X = 64;
+    //private const int WARP_Y = 8;
+    //private int mWarpX;
+    //private int mWarpY;
+
    
     // In the future tie the particle's positions to the vector field
     
@@ -60,9 +69,24 @@ public class ParticleSimulator : MonoBehaviour
 
     /* STEP 3 : Initialize nescessary variables for a fence to prevent multithreading issues */
     // 3) a. Create a fence using a command buffer
-    CommandBuffer fenceCommandBuffer;
-    int fence;
-    int[] results;
+   
+
+    /********************************************************/
+
+    // HELPER FUNCTIONS:
+
+    /* FUNCTION : InitializeFenc ***************************
+     *
+     * use      : helper function to keep things organized.
+     *            - Initializes the fence stuff such as
+     *              -> 
+     *
+     *******************************************************/
+    void InitFence()
+    {
+        
+    }
+
 
 
      /* FUNCTION : InitializeVectorField *******************
@@ -124,6 +148,10 @@ public class ParticleSimulator : MonoBehaviour
         // 1) a. WRAPS of threads
         mWarpCount = Mathf.CeilToInt((float) numParticles / WARP_SIZE);
 
+        // Trying [64, 8, 1]
+        //mWarpX = Mathf.CeilToInt((float) numParticles / WARP_X);
+        //mWarpY = Mathf.CeilToInt((float) numParticles / WARP_Y);
+
         // 1) b. Set particle Buffer based on Particle size and # of particles
         particleBuffer = new ComputeBuffer(numParticles, SIZE_PARTICLE);
 
@@ -150,7 +178,7 @@ public class ParticleSimulator : MonoBehaviour
             particleArray[i].velocity.y = 0;
             particleArray[i].velocity.z = 0;
 
-            particleArray[i].lifetime = Random.value * 5.0f + 1.0f;
+            particleArray[i].lifetime = UnityEngine.Random.value * 5.0f + 1.0f;
 
             particleArray[i].color.x = 1;
             particleArray[i].color.y = 0;
@@ -197,10 +225,7 @@ public class ParticleSimulator : MonoBehaviour
         InitParticles();
 
         /* STEP 3 : Initialize fence variables*/
-        fenceCommandBuffer = new CommandBuffer();
-        fence = fenceCommandBuffer.IssuePluginEvent(GetFencePluginEventID());
-        Graphics.ExecuteCommandBuffer(fenceCommandBuffer);
-        fenceCommandBuffer.Release();
+        InitFence();
 
     }
 
@@ -226,14 +251,13 @@ public class ParticleSimulator : MonoBehaviour
         // 3) b. regarding the vector field
         circularField.SetFloat("_Time", time);
 
-        // Dispatch the vector field before the particles since particles depend on the vector field
-        circularField.Dispatch(kernelID, threadGroupsX, threadGroupsY, 1);
-        
-        // Deal with FENCE
-        
-
-        // Dispatch the particle shader
+        /* STEP 4: Dispatch */
+        circularField.Dispatch(fieldKernelID, threadGroupsX, threadGroupsY, 1);
+       
         particleShader.Dispatch(kernelID, mWarpCount, 1, 1);
+        // Trying [64, 8, 1]
+        //particleShader.Dispatch(kernelID, mWarpX, 1, 1);
+
     }
 
     // Called by Unity's GUI system
