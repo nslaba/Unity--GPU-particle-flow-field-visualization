@@ -45,17 +45,18 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     
     // Update particle velocity based on vector field and time
     uint2 texCoord = uint2(pos.x / _VectorFieldSize.x, pos.y / _VectorFieldSize.y);
+
     float4 texel = _VectorField.Load(int3(texCoord, 0));
-    //vel += _VectorField.SampleLevel(_LinearSampler, texCoord, 0).xyz * direction;
     //uint2 texCoord = uint2(id.x / 256, id.x % 256);
     vel += _VectorField[texel.xy] * direction;
+    // vel = _VectorField[texel.xy];
 
     // Update particle position based on vel and time
     pos += vel * deltaTime;
 
     // for now keep color, force, size and lifetime the same
     if (lifetime < 0.0)
-    {
+    { 
         // destroy the particle somehow or do something
         // p.color.w = 0;
     }

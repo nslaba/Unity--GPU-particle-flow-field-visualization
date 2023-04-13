@@ -241,7 +241,19 @@ public class ParticleSimulator : MonoBehaviour
         time = Time.time;
         deltaTime = Time.deltaTime;
         // Deal with mouse
+        Vector3 p = new Vector3();
+        Camera c = Camera.main;
+        Vector2 mousePos = Input.mousePosition;
+
+        p = c.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, c.nearClipPlane + 14)); // z = 3
+        cursorPos.x = p.x;
+        cursorPos.y = p.y;
+
+
         float[] mousePosition2D = {cursorPos.x, cursorPos.y};
+        Debug.Log("mouse pos is");
+        Debug.Log(cursorPos.x);
+        Debug.Log(cursorPos.y);
 
         /* STEP 3: Update shader parameters*/
         // 3) a. regarding the particle shader
@@ -260,21 +272,6 @@ public class ParticleSimulator : MonoBehaviour
 
     }
 
-    // Called by Unity's GUI system
-    void OnGui()
-    {
-        Vector3 p = new Vector3();
-        Camera c = Camera.main;
-        Event e = Event.current;
-        Vector2 mousePos = new Vector2();
-
-        mousePos.x = e.mousePosition.x;
-        mousePos.y = c.pixelHeight - e.mousePosition.y;
-
-        p = c.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, c.nearClipPlane + 14)); // z = 3
-        cursorPos.x = p.x;
-        cursorPos.y = p.y;
-    }
 
     void OnDestroy() {
         /* STEP 4: Release the particle buffer*/
