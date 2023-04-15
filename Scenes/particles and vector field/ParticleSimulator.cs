@@ -36,13 +36,6 @@ public class ParticleSimulator : MonoBehaviour
     private const int WARP_SIZE = 256;
     // num of wraps needed
     private int mWarpCount;
-
-    // Trying [64, 8, 1]
-    //private const int WARP_X = 64;
-    //private const int WARP_Y = 8;
-    //private int mWarpX;
-    //private int mWarpY;
-
    
     // In the future tie the particle's positions to the vector field
     
@@ -98,23 +91,23 @@ public class ParticleSimulator : MonoBehaviour
      *******************************************************/
     void InitVectorField()
     {
-        Debug.Log("At the start of InitVectorField");
+        // Debug.Log("At the start of InitVectorField");
         /* STEP 1 :  calc and update the nescessary vars */
         // 1) a. define dimensions
         dimensions = new Vector2(fieldWidth, fieldHeight);
-        Debug.Log("in InitVectorField : after defining dimensions (1a)");
+        // Debug.Log("in InitVectorField : after defining dimensions (1a)");
 
          // 1) b. define threadGroups
         threadGroupsX = Mathf.CeilToInt(fieldWidth/64f);
         threadGroupsY = Mathf.CeilToInt(fieldHeight/8f);
-        Debug.Log("in InitVectorField : after defining thread groups (1b)");
+        // Debug.Log("in InitVectorField : after defining thread groups (1b)");
 
 
         // 1) b. get the kernel ID
         fieldKernelID = circularField.FindKernel("GenerateCircularField");
         if (fieldKernelID == -1) Debug.Log("the fieldKernelID found is not null"); // My code doesn't even get here
 
-        Debug.Log("in InitVectorField : after step 1");
+        // Debug.Log("in InitVectorField : after step 1");
 
         /* STEP 2 :  Create texture and other vars */
         // Create a texture
@@ -122,7 +115,7 @@ public class ParticleSimulator : MonoBehaviour
         circularFieldTexture.enableRandomWrite = true;
         circularFieldTexture.Create();
 
-        Debug.Log("in InitVectorField : after step 2");
+        // Debug.Log("in InitVectorField : after step 2");
 
         /* STEP 3 : Bind the nescessary vars to shader & material*/
         // Set the texture as a parameter in the compute shader
@@ -131,7 +124,11 @@ public class ParticleSimulator : MonoBehaviour
         circularField.SetFloat("_Time", Time.time);
         circularField.SetFloat("_RotationSpeed", rotationSpeed);
 
-        Debug.Log("in InitVectorField : after step 3");
+        // Debug.Log("in InitVectorField : after step 3");
+
+        /* STEP 4 : Dispatch only once since dealing with a steady Vector field*/
+        circularField.Dispatch(fieldKernelID, threadGroupsX, threadGroupsY, 1);
+
     }
 
 
@@ -148,9 +145,6 @@ public class ParticleSimulator : MonoBehaviour
         // 1) a. WRAPS of threads
         mWarpCount = Mathf.CeilToInt((float) numParticles / WARP_SIZE);
 
-        // Trying [64, 8, 1]
-        //mWarpX = Mathf.CeilToInt((float) numParticles / WARP_X);
-        //mWarpY = Mathf.CeilToInt((float) numParticles / WARP_Y);
 
         // 1) b. Set particle Buffer based on Particle size and # of particles
         particleBuffer = new ComputeBuffer(numParticles, SIZE_PARTICLE);
@@ -225,7 +219,7 @@ public class ParticleSimulator : MonoBehaviour
         InitParticles();
 
         /* STEP 3 : Initialize fence variables*/
-        InitFence();
+       // InitFence();
 
     }
 
@@ -264,11 +258,10 @@ public class ParticleSimulator : MonoBehaviour
         circularField.SetFloat("_Time", time);
 
         /* STEP 4: Dispatch */
-        circularField.Dispatch(fieldKernelID, threadGroupsX, threadGroupsY, 1);
+        // circularField.Dispatch(fieldKernelID, threadGroupsX, threadGroupsY, 1);
        
         particleShader.Dispatch(kernelID, mWarpCount, 1, 1);
-        // Trying [64, 8, 1]
-        //particleShader.Dispatch(kernelID, mWarpX, 1, 1);
+        
 
     }
 

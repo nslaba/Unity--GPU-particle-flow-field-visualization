@@ -18,8 +18,6 @@ RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
 uniform float2 _VectorFieldSize;
 RWStructuredBuffer<Particle> particles;
 
-// Use Perlin field in the future to set Particle's positions
-
 
 // Variables from the CPU
 float deltaTime;
@@ -41,18 +39,32 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     float3 delta = float3(mousePosition.xy, 3) - particles[id.x].position;
     float3 direction = normalize(delta);
 
-    // Sample the vector field at the current particle position -> LATER
-    
-    // Update particle velocity based on vector field and time
-    uint2 texCoord = uint2(pos.x / _VectorFieldSize.x, pos.y / _VectorFieldSize.y);
+    // Sample the vector field at the current particle position 
+    float u = pos.x / 1920.0f;
+    float v = pos.y / 1080.0f;
 
-    float4 texel = _VectorField.Load(int3(texCoord, 0));
-    //uint2 texCoord = uint2(id.x / 256, id.x % 256);
-    vel += _VectorField[texel.xy] * direction;
-    // vel = _VectorField[texel.xy];
+    // access the texture in texture coordinates which range from 0,1
+    
+
+    // Map the pos world space to screen space
+    pos.x += 1920/2.0f;
+    pos.y += 1080/2.0f;
+    // Normalize the screen space vals to texture space which lies between 0 and 1
+    uint2 texCoord = uint2(pos.xy / _VectorFieldSize.xy);
+    float4 texel = _VectorField.Load(int3(texCoord, 0)); // should load the RG texel which should be between 0 and 1
+    // Determine the sign of the texel
+    // float xSign = (texel.x * 2.0 - 1.0) * sign(vel.x);
+    // float ySign = (texel.y * 2.0 - 1.0) * sign(vel.y);
+    
+    // Update velocity based on sign
+    // vel.x += xSign * deltaTime;
+    // vel.y += ySign * deltaTime;
+    //float3(texel.xy, 0.0) 
+    vel += float3(texel.xy, 0.0) * direction * deltaTime;
+
 
     // Update particle position based on vel and time
-    pos += vel * deltaTime;
+    p.position += vel * deltaTime;
 
     // for now keep color, force, size and lifetime the same
     if (lifetime < 0.0)
@@ -62,7 +74,6 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     }
 
     // Write back updated particle data
-    p.position = pos;
     p.velocity = vel;
     p.lifetime = lifetime;
     

@@ -20,6 +20,7 @@ void GenerateCircularField (uint3 id : SV_DispatchThreadID)
     // subtracting 0.5 and multiplying by 10 is to control the magnitude of the vectors
     float angle = length(position - 0.5) * 10.0 + _Time * _RotationSpeed;
     float2 direction = float2(cos(angle), sin(angle));
-    _VectorField[id.xy] = float4(direction, 0.0, 1.0); // Since its RGBA :) -> I will use alpha for vector magnitude
+    direction = normalize(direction); // want RGBA to be between 0 and 1
+    _VectorField[id.xy] = float4(direction, 0.0, 1.0); // Since it's RGBA :) -> I will use alpha for vector magnitude
     
 }
