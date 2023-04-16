@@ -65,10 +65,9 @@ public class ParticleSimulator : MonoBehaviour
     // Material used to draw particles on screen
     public Material material;
 
-    /* Step 3 : FPS declerations*/
-    // public TMP_Text fpsText;
-    // private float deltaTFPS = 0.0f;
-
+    /* Step 3 : Declare mouse pos to pass to vert/frag shader*/
+    [SerializeField]
+    private Vector2 mousePosVF;
 
 
      /* FUNCTION : InitializeVectorField *******************
@@ -235,15 +234,16 @@ public class ParticleSimulator : MonoBehaviour
         /* STEP 2 : Initialize Particles*/
         InitParticles();
 
-        /* STEP 3 : Initialize fence variables*/
-       // InitFence();
-
     }
 
     void OnRenderObject()
     {
+        // Update and Pass mouse position
+        mousePosVF = cursorPos;
+        material.SetVector("_MousePosition", new Vector4(mousePosVF.x, mousePosVF.y, 0.0f, 0.0f));
+
         material.SetPass(0);
-        Graphics.DrawProceduralNow(MeshTopology.Points, 1, numParticles);
+        Graphics.DrawProceduralNow(MeshTopology.Points, 1, numParticles);        
     }
 
     // Update is called once per frame

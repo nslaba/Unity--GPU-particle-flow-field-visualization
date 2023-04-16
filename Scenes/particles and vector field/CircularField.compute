@@ -19,9 +19,8 @@ void GenerateCircularField (uint3 id : SV_DispatchThreadID)
     float a = atan2(id.y, id.x);
     float R = sqrt(id.x*id.x + id.y*id.y);
     //float2 v = (R * sin(a), R * cos(a));
- 
-    float2 v = (float(R * sin(a)), float(R * cos(a)));
 
+    float2 v = float2(R * sin(a), R * cos(a));
     // float2 position = (float2)id.xy / uint2(_ForceFieldSize.xy);
     // // subtracting 0.5 and multiplying by 10 is to control the magnitude of the vectors
     // float angle = length(position - 0.5) * 10.0 + _Time * _RotationSpeed;

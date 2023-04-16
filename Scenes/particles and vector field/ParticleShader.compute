@@ -62,6 +62,11 @@ void IntegrateEuler(uint3 threadID)
     p.positionPrev = posCur;
 	p.positionCur = posNew;
 
+    if (lifetime < 0.001)
+    {
+        lifetime = 0.0;
+    }
+
     /* Step 5: write data back to particle buffer*/
     
     p.velocity = vel;
@@ -110,6 +115,11 @@ void IntegrateVerlet(uint3 threadID)
     p.positionPrev = posCur;
 	p.positionCur = posNew;
 
+    if (lifetime < 0.001)
+    {
+        lifetime = 0.0;
+    }
+
     /* Step 5: write data back to particle buffer*/
     p.velocity = vel;
     p.accelaration = acc;
@@ -127,11 +137,5 @@ void UpdateParticles(uint3 id: SV_DispatchThreadID) {
     //IntegrateEuler(id);
     IntegrateVerlet(id);
     
-
-    // // Deal with mouse
-    // float3 delta = float3(mousePosition.xy, 3) - particles[id.x].positionCur;
-    // float3 direction = normalize(delta);
-
-    // vel += float3(texel.xy, 0.0) * direction * deltaTime;
 
 }
