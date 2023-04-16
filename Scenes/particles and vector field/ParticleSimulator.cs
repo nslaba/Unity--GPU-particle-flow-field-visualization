@@ -3,7 +3,9 @@ using System.Runtime.InteropServices;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Rendering;
+using TMPro;
 
 
 // This script handles particle simulation
@@ -63,7 +65,9 @@ public class ParticleSimulator : MonoBehaviour
     // Material used to draw particles on screen
     public Material material;
 
- 
+    /* Step 3 : FPS declerations*/
+    // public TMP_Text fpsText;
+    // private float deltaTFPS = 0.0f;
 
 
 
@@ -197,7 +201,7 @@ public class ParticleSimulator : MonoBehaviour
             particleArray[i].force.z = 0;
             
 
-            particleArray[i].mass = 10.0f;
+            particleArray[i].mass = 0.8f;
 
             
         }
@@ -278,6 +282,12 @@ public class ParticleSimulator : MonoBehaviour
 
     }
 
+    void OnGUI()
+    {
+        int fps = Mathf.RoundToInt(1.0f / deltaTime);
+        string text = string.Format("{0} FPS", fps);
+        GUI.Label(new Rect(10, 10, 100, 20), text);
+    }
 
     void OnDestroy() {
         /* STEP 4: Release the particle buffer*/
