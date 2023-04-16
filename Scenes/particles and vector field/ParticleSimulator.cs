@@ -45,40 +45,25 @@ public class ParticleSimulator : MonoBehaviour
 
     // Particle struct
     struct Particle {
-        public Vector3 position;
+        public Vector3 positionCur;
+        public Vector3 positionPrev;
+        public Vector3 positionNew;
         public Vector3 velocity;
+        public Vector3 accelaration;
         public Vector4 color;
-        public Vector3 force;
-        public float size;
+        public Vector3 force; // Will be calculated by the vector field. I also need acceleration to calc velocity and position
+        public float mass;
         public float lifetime;
     }
     
-    private const int SIZE_PARTICLE = 60;
+    private const int SIZE_PARTICLE = 96;
     // change # of particles to be 2073600 = 1920 x 1080. This way I can initialize the particles' positions per pixel
     private int numParticles = 2073600;
 
     // Material used to draw particles on screen
     public Material material;
 
-    /* STEP 3 : Initialize nescessary variables for a fence to prevent multithreading issues */
-    // 3) a. Create a fence using a command buffer
-   
-
-    /********************************************************/
-
-    // HELPER FUNCTIONS:
-
-    /* FUNCTION : InitializeFenc ***************************
-     *
-     * use      : helper function to keep things organized.
-     *            - Initializes the fence stuff such as
-     *              -> 
-     *
-     *******************************************************/
-    void InitFence()
-    {
-        
-    }
+ 
 
 
 
@@ -119,8 +104,8 @@ public class ParticleSimulator : MonoBehaviour
 
         /* STEP 3 : Bind the nescessary vars to shader & material*/
         // Set the texture as a parameter in the compute shader
-        circularField.SetTexture(fieldKernelID, "_VectorField", circularFieldTexture);
-        circularField.SetVector("_VectorFieldSize", dimensions);
+        circularField.SetTexture(fieldKernelID, "_ForceField", circularFieldTexture);
+        circularField.SetVector("_ForceFieldSize", dimensions);
         circularField.SetFloat("_Time", Time.time);
         circularField.SetFloat("_RotationSpeed", rotationSpeed);
 
@@ -163,14 +148,42 @@ public class ParticleSimulator : MonoBehaviour
             float column = i - row * 1920f;
             row -= (1080f/2f);
             column -= (1920f/2f);
+            
 
-            particleArray[i].position.x = column / 100f;
-            particleArray[i].position.y = row / 100f; // 1080 is the screen height
-            particleArray[i].position.z = 1;
+            // Temporarily initialize particles to a random pos and see if they move in a circle
+            // particleArray[i].positionCur.x = UnityEngine.Random.value * 1.0f - 1.0f;
+            // particleArray[i].positionCur.y = UnityEngine.Random.value - 2.0f; // 1080 is the screen height
+            // particleArray[i].positionCur.z = 1;
+
+            // // Initialize for Verlet
+            // particleArray[i].positionPrev.x = UnityEngine.Random.value * 1.0f - 1.0f;
+            // particleArray[i].positionPrev.y = UnityEngine.Random.value - 2.0f;
+            // particleArray[i].positionPrev.z = 1;
+
+            // particleArray[i].positionNew.x = UnityEngine.Random.value * 1.0f - 1.0f;
+            // particleArray[i].positionNew.y = UnityEngine.Random.value - 2.0f;
+            // particleArray[i].positionNew.z = 1;
+
+            particleArray[i].positionCur.x = column / 100f;
+            particleArray[i].positionCur.y = row / 100f; // 1080 is the screen height
+            particleArray[i].positionCur.z = 1;
+
+            // Initialize for Verlet
+            particleArray[i].positionPrev.x = column / 100f;
+            particleArray[i].positionPrev.y = row / 100f; 
+            particleArray[i].positionPrev.z = 1;
+
+            particleArray[i].positionNew.x = column / 100f;
+            particleArray[i].positionNew.y = row / 100f; 
+            particleArray[i].positionNew.z = 1;
 
             particleArray[i].velocity.x = 0;
             particleArray[i].velocity.y = 0;
             particleArray[i].velocity.z = 0;
+
+            particleArray[i].accelaration.x = 0;
+            particleArray[i].accelaration.y = 0;
+            particleArray[i].accelaration.z = 0;
 
             particleArray[i].lifetime = UnityEngine.Random.value * 5.0f + 1.0f;
 
@@ -184,7 +197,7 @@ public class ParticleSimulator : MonoBehaviour
             particleArray[i].force.z = 0;
             
 
-            particleArray[i].size = 0.8f;
+            particleArray[i].mass = 10.0f;
 
             
         }
@@ -200,8 +213,8 @@ public class ParticleSimulator : MonoBehaviour
         material.SetBuffer("particleBuffer", particleBuffer);
 
         // 3) d. Set the data shared between the two shaders
-        particleShader.SetTexture(kernelID, "_VectorField", circularFieldTexture);
-        particleShader.SetVector("_VectorFieldSize", dimensions);
+        particleShader.SetTexture(kernelID, "_ForceField", circularFieldTexture);
+        particleShader.SetVector("_ForceFieldSize", dimensions);
     }
 
 

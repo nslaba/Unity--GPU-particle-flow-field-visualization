@@ -3,8 +3,8 @@
 
 // _ is a convention in unity for private vars
 // RWTexture2D is specifically designed for R/W pixel data to a texture on the GPU
-RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
-uniform float2 _VectorFieldSize;
+RWTexture2D<float4> _ForceField; // stores 4 floats per pixel
+uniform float2 _ForceFieldSize;
 uniform float _Time;
 // Declare rotation speed of vector field
 uniform float _RotationSpeed;
@@ -15,12 +15,18 @@ uniform float _RotationSpeed;
 [numthreads(64,8,1)]
 void GenerateCircularField (uint3 id : SV_DispatchThreadID)
 {
-    
-    float2 position = (float2)id.xy / uint2(_VectorFieldSize.xy);
-    // subtracting 0.5 and multiplying by 10 is to control the magnitude of the vectors
-    float angle = length(position - 0.5) * 10.0 + _Time * _RotationSpeed;
-    float2 direction = float2(cos(angle), sin(angle));
-    direction = normalize(direction); // want RGBA to be between 0 and 1
-    _VectorField[id.xy] = float4(direction, 0.0, 1.0); // Since it's RGBA :) -> I will use alpha for vector magnitude
+    /* Step 1: Create a vortex - Based on course slides*/
+    float a = atan2(id.y, id.x);
+    float R = sqrt(id.x*id.x + id.y*id.y);
+    //float2 v = (R * sin(a), R * cos(a));
+ 
+    float2 v = (float(R * sin(a)), float(R * cos(a)));
+
+    // float2 position = (float2)id.xy / uint2(_ForceFieldSize.xy);
+    // // subtracting 0.5 and multiplying by 10 is to control the magnitude of the vectors
+    // float angle = length(position - 0.5) * 10.0 + _Time * _RotationSpeed;
+    // float2 direction = float2(cos(angle), sin(angle));
+    // direction = normalize(direction); // want RGBA to be between 0 and 1
+    _ForceField[id.xy] = float4(v, 1.0, 1.0); // Since it's RGBA :) -> I will use alpha for vector magnitude
     
 }

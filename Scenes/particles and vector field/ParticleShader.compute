@@ -3,19 +3,22 @@
 #pragma kernel UpdateParticles
 
 struct Particle {
-    float3 position;
+    float3 positionCur;
+    float3 positionPrev;
+    float3 positionNew;
     float3 velocity;
+    float3 accelaration;
     float4 color;
     float3 force;
-    float size;
+    float mass;
     float lifetime;
 };
 
 
 
 // Initialize the vector field that will share data with the CircularField compute shader :)
-RWTexture2D<float4> _VectorField; // stores 4 floats per pixel
-uniform float2 _VectorFieldSize;
+RWTexture2D<float4> _ForceField; // stores 4 floats per pixel
+uniform float2 _ForceFieldSize;
 RWStructuredBuffer<Particle> particles;
 
 
@@ -23,59 +26,103 @@ RWStructuredBuffer<Particle> particles;
 float deltaTime;
 float2 mousePosition;
 
-//[numthreads(64, 8, 1)]
+void IntegrateEuler(uint3 threadID)
+{
+    Particle p = particles[threadID.x];
+    float3 posCur = p.positionCur;
+    float3 posPrev = p.positionPrev;
+    float3 posNew = p.positionNew;
+    float3 vel = p.velocity;
+    float3 acc = p.accelaration;
+    float4 color = p.color;
+    float3 force = p.force; // Force will be computed by the vector field
+    float mass = p.mass;
+    float lifetime = p.lifetime - deltaTime;
+
+    /* Step 1: update force based on force field */
+    // 1) a. sample the force field based on posCur
+    // Convert the particle position to texture coordinates
+    float2 texCoords = posCur.xy / float2(_ForceFieldSize.xy);
+
+    // 1) c. Update force & Sample the force field texture
+    force = _ForceField.Load(int3(texCoords.xy, 1.0));
+
+    /* Step 2: calculate accelaration*/
+    acc = force / mass;
+    /* Step 3: update velocity and position based on euler*/
+    posNew = posCur + deltaTime * vel;
+    vel = vel + deltaTime * acc;
+
+    /* Step 4: since particles are independent, update positions right away*/
+    p.positionPrev = posCur;
+	p.positionCur = posNew;
+
+    /* Step 5: write data back to particle buffer*/
+    
+    p.velocity = vel;
+    p.accelaration = acc;
+    p.color = color;
+    p.force = force;
+    p.mass = mass;
+    p.lifetime = lifetime; 
+    particles[threadID.x] = p;
+
+}
+
+void IntegrateVerlet(uint3 threadID)
+{
+    Particle p = particles[threadID.x];
+    float3 posCur = p.positionCur;
+    float3 posPrev = p.positionPrev;
+    float3 posNew = p.positionNew;
+    float3 vel = p.velocity;
+    float3 acc = p.accelaration;
+    float4 color = p.color;
+    float3 force = p.force; // Force will be computed by the vector field
+    float mass = p.mass;
+    float lifetime = p.lifetime - deltaTime;
+
+    /* Step 1: update force based on force field*/
+    // 1) a. sample the force field based on posCur
+    // Convert the particle position to texture coordinates
+    float2 texCoords = posCur.xy / float2(_ForceFieldSize.xy);
+
+    // 1) c. Update force & Sample the force field texture
+    force = _ForceField.Load(int3(texCoords.xy, 1.0));
+
+    /* Step 2: calculate accelaration*/
+    acc = force / mass;
+
+    /* Step 3: update velocity and position based on verlet*/
+    vel = ((posNew - posPrev) / (2.0 * deltaTime));
+    posNew = 2.0* posCur - posPrev + acc * pow(deltaTime, 2.0);
+
+    /* Step 4: since particles are independent, update positions right away*/
+    p.positionPrev = posCur;
+	p.positionCur = posNew;
+
+    /* Step 5: write data back to particle buffer*/
+    p.velocity = vel;
+    p.accelaration = acc;
+    p.color = color;
+    p.force = force;
+    p.mass = mass;
+    p.lifetime = lifetime; 
+    particles[threadID.x] = p;
+}
+
+
 [numthreads(256, 1, 1)]
 void UpdateParticles(uint3 id: SV_DispatchThreadID) {
 
-    Particle p = particles[id.x];
-    float3 pos = p.position;
-    float3 vel = p.velocity;
-    float4 color = p.color;
-    float3 force = p.force;
-    float size = p.size;
-    float lifetime = p.lifetime - deltaTime;
-
-    // Deal with mouse
-    float3 delta = float3(mousePosition.xy, 3) - particles[id.x].position;
-    float3 direction = normalize(delta);
-
-    // Sample the vector field at the current particle position 
-    float u = pos.x / 1920.0f;
-    float v = pos.y / 1080.0f;
-
-    // access the texture in texture coordinates which range from 0,1
+    IntegrateEuler(id);
+    //IntegrateVerlet(id);
     
 
-    // Map the pos world space to screen space
-    pos.x += 1920/2.0f;
-    pos.y += 1080/2.0f;
-    // Normalize the screen space vals to texture space which lies between 0 and 1
-    uint2 texCoord = uint2(pos.xy / _VectorFieldSize.xy);
-    float4 texel = _VectorField.Load(int3(texCoord, 0)); // should load the RG texel which should be between 0 and 1
-    // Determine the sign of the texel
-    // float xSign = (texel.x * 2.0 - 1.0) * sign(vel.x);
-    // float ySign = (texel.y * 2.0 - 1.0) * sign(vel.y);
-    
-    // Update velocity based on sign
-    // vel.x += xSign * deltaTime;
-    // vel.y += ySign * deltaTime;
-    //float3(texel.xy, 0.0) 
-    vel += float3(texel.xy, 0.0) * direction * deltaTime;
+    // // Deal with mouse
+    // float3 delta = float3(mousePosition.xy, 3) - particles[id.x].positionCur;
+    // float3 direction = normalize(delta);
 
+    // vel += float3(texel.xy, 0.0) * direction * deltaTime;
 
-    // Update particle position based on vel and time
-    p.position += vel * deltaTime;
-
-    // for now keep color, force, size and lifetime the same
-    if (lifetime < 0.0)
-    { 
-        // destroy the particle somehow or do something
-        // p.color.w = 0;
-    }
-
-    // Write back updated particle data
-    p.velocity = vel;
-    p.lifetime = lifetime;
-    
-    particles[id.x] = p;
 }
